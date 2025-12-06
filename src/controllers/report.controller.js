@@ -1,6 +1,6 @@
 const DeviceType = require("../models/DeviceType");
 const Brand = require("../models/Brand");
-const Model = require("../models/Model");
+
 
 const Report = require("../models/Report");
 const SparePart = require("../models/SparePart");
@@ -8,52 +8,6 @@ const SparePart = require("../models/SparePart");
 
 
 const SparePartModel = require("../models/SparePartModel");
-// exports.createReport = async (req, res) => {
-//   try {
-
-
-//     console.log("REQ BODY:", req.body);
-// console.log("LOOKUP:", {
-//   dt: await DeviceType.findOne({ name: req.body.deviceType }),
-//   br: await Brand.findOne({ name: req.body.brand }),
-//   md: await Model.findOne({ name: req.body.model }),
-// });
-//     const image = req.file ? req.file.filename : null;
-
-
-// const deviceTypeDoc = await DeviceType.findOne({ name: new RegExp(`^${req.body.deviceType.trim()}$`, "i") });
-// const brandDoc = await Brand.findOne({ name: new RegExp(`^${req.body.brand.trim()}$`, "i") });
-// const modelDoc = await Model.findOne({ name: new RegExp(`^${req.body.model.trim()}$`, "i") });
-
-
-//     if (!deviceTypeDoc || !brandDoc || !modelDoc) {
-//       return res.status(400).json({ error: "Invalid deviceType / brand / model" });
-//     }
-
-//     const payload = {
-//       region: req.body.region,
-//       technicianName: req.body.technicianName,
-//       serialNumber: req.body.serialNumber,
-//       date: req.body.date ? new Date(req.body.date) : undefined,
-//       // deviceType: req.body.deviceType,
-//       // brand: req.body.brand,
-//       // model: req.body.model,
-//       deviceType: deviceTypeDoc._id,
-//       brand: brandDoc._id,
-//       model: modelDoc._id,
-//       image
-//     };
-//     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
-
-//     const report = await Report.create(payload);
-//     const base = `${req.protocol}://${req.get('host')}`;
-//     const response = { ...report.toObject(), imageUrl: image ? `${base}/uploads/${image}` : null };
-//     res.status(201).json(response);
-//   } catch (e) {
-//     console.error('createReport error', e);
-//     res.status(500).json({ error: e.message });
-//   }
-// };
 
 exports.createReport = async (req, res) => {
   try {
@@ -67,20 +21,7 @@ exports.createReport = async (req, res) => {
       ? await SparePartModel.findOne({ name: new RegExp(`^${spareBrandName}$`, "i"), sparePart: sparePartDoc?._id })
       : null;
 
-    // const { sparePart: spName, sparePartModel: spModelName } = req.body;
-
-    // // Lookup sparePart
-    // const sparePartDoc = spName ? await SparePart.findOne({ name: spName }) : null;
-
-    // // Lookup sparePartModel (اختياري)
-    // let sparePartModelDoc = null;
-    // if (sparePartDoc && spModelName) {
-    //   sparePartModelDoc = await SparePartModel.findOne({ 
-    //     name: spModelName,
-    //     sparePart: sparePartDoc._id
-    //   });
-    // }
-
+  
     // normalize incoming strings (avoid "null" string)
     const dtName = req.body.deviceType ? req.body.deviceType.toString().trim() : "";
     const brName = req.body.brand ? req.body.brand.toString().trim() : "";
@@ -120,7 +61,13 @@ exports.createReport = async (req, res) => {
 
     
 
-    const image = req.file ? req.file.filename : null;
+    // على Vercel، لا يمكننا حفظ الملفات محلياً، لذلك نخزن البيانات كـ base64
+    const image = req.file ? {
+      filename: `image_${Date.now()}.${req.file.originalname.split('.').pop()}`,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      buffer: req.file.buffer.toString('base64')
+    } : null;
 
     const payload = {
        sparePart: sparePartDoc?._id,
@@ -140,7 +87,6 @@ exports.createReport = async (req, res) => {
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
     const report = await Report.create(payload);
-    const base = `${req.protocol}://${req.get("host")}`;
     const fresh = await Report.findById(report._id)
       .populate('deviceType')
       .populate('brand')
@@ -148,7 +94,11 @@ exports.createReport = async (req, res) => {
       .populate('sparePart')
       .populate('sparePartModel')
       .lean();
-    const data = { ...fresh, imageUrl: fresh?.image ? `${base}/uploads/${fresh.image}` : null };
+    // على Vercel، لا يمكننا تقديم ملفات ثابتة، لذلك نعيد بيانات base64 مباشرة
+    const data = { 
+      ...fresh, 
+      imageData: fresh?.image?.buffer ? `data:${fresh.image.mimetype};base64,${fresh.image.buffer}` : null 
+    };
     if (data.sparePartModel && !data.spareBrand) data.spareBrand = data.sparePartModel;
     if (!data.deviceType && data.deviceTypeName) data.deviceType = data.deviceTypeName;
     if (!data.brand && data.brandName) data.brand = data.brandName;

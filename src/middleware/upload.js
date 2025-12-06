@@ -1,20 +1,12 @@
 require("dotenv").config();
 const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
 
-const uploadDir = process.env.UPLOAD_PATH || "uploads";
-const uploadDirAbs = path.resolve(uploadDir);
-fs.mkdirSync(uploadDirAbs, { recursive: true });
+// على Vercel، لا يمكننا حفظ الملفات على القرص، لذلك نستخدم memory storage
+const storage = multer.memoryStorage();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDirAbs);
-  },
-
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+module.exports = multer({ 
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
   }
 });
-
-module.exports = multer({ storage });

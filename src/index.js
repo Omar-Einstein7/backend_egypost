@@ -1,4 +1,4 @@
-require("dotenv").config();   // <-- مهم جداً
+require("dotenv").config();
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -13,10 +13,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Static folder
-const path = require('path');
-const uploadStaticDir = path.resolve(process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads'));
-app.use("/uploads", express.static(uploadStaticDir));
+// Static folder - لن يعمل على Vercel لأنها لا تدعم تخزين ملفات ثابتة
+// const path = require('path');
+// const uploadStaticDir = path.resolve(process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads'));
+// app.use("/uploads", express.static(uploadStaticDir));
 
 // Connect DB
 mongoose
@@ -30,7 +30,6 @@ app.use("/spares", spareRoutes);
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
-// Start server
- // http://omar-dev.local
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Export as Vercel serverless function
+module.exports = app;
