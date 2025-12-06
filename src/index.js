@@ -57,10 +57,6 @@ const connectDB = async () => {
       connectTimeoutMS: 30000,
       maxPoolSize: 3, // Smaller pool for serverless
       minPoolSize: 1,
-      bufferMaxEntries: 0, // Critical for serverless - no buffering
-      bufferCommands: false, // Critical for serverless - no buffering
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       family: 4, // Force IPv4
     });
     
