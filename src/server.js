@@ -27,7 +27,9 @@ mongoose
 // Routes
 app.use("/reports", reportRoutes);
 app.use("/spares", spareRoutes);
-
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 // Start server
  // http://omar-dev.local
 const PORT = process.env.PORT || 5000;
