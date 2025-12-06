@@ -18,11 +18,22 @@ const path = require('path');
 const uploadStaticDir = path.resolve(process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads'));
 app.use("/uploads", express.static(uploadStaticDir));
 
-// Connect DB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected!"))
-  .catch((err) => console.log(err.message));
+// Connect DB with better timeout settings
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 30000, // 30 seconds timeout
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+    });
+    console.log("MongoDB Connected!");
+  } catch (err) {
+    console.error("MongoDB connection error:", err.message);
+    process.exit(1);
+  }
+};
 
 // Routes
 app.use("/reports", reportRoutes);
@@ -31,10 +42,12 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-// Export as Vercel serverless function OR start server locally
-if (process.env.VERCEL) {
-  module.exports = app;
-} else {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}
+// Export as Vercel serverless function
+module.exports = async (req, res) => {
+  // Connect to DB on first request if not connected
+  if (mongoose.connection.readyState === 0) {
+    await connectDB();
+  }
+  
+  return app(req, res);
+};
