@@ -7,6 +7,9 @@ const cors = require("cors");
 const reportRoutes = require("./routes/report.routes");
 const spareRoutes = require("./routes/spare.routes");
 
+
+const ctrl = require("../src/controllers/report.controller");
+
 const app = express();
 
 // Middleware
@@ -33,6 +36,8 @@ mongoose
 
 // Routes
 app.use("/reports", reportRoutes);
+
+app.get("/get" , ctrl.getReports )
 app.use("/spares", spareRoutes);
 app.get("/", (req, res) => {
   res.send("Hello World!");
