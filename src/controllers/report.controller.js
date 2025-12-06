@@ -61,22 +61,7 @@ exports.createReport = async (req, res) => {
 
     
 
-    // التعامل مع الملفات بناءً على البيئة
-    let image = null;
-    if (req.file) {
-      if (process.env.VERCEL) {
-        // على Vercel - حفظ كـ base64
-        image = {
-          filename: `image_${Date.now()}.${req.file.originalname.split('.').pop()}`,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
-          buffer: req.file.buffer.toString('base64')
-        };
-      } else {
-        // محلياً - حفظ اسم الملف فقط
-        image = req.file.filename;
-      }
-    }
+    const image = req.file ? req.file.filename : null;
 
     const payload = {
        sparePart: sparePartDoc?._id,
@@ -96,6 +81,7 @@ exports.createReport = async (req, res) => {
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
     const report = await Report.create(payload);
+    const base = `${req.protocol}://${req.get("host")}`;
     const fresh = await Report.findById(report._id)
       .populate('deviceType')
       .populate('brand')
@@ -103,17 +89,7 @@ exports.createReport = async (req, res) => {
       .populate('sparePart')
       .populate('sparePartModel')
       .lean();
-    // التعامل مع الصور بناءً على البيئة
-    let data = { ...fresh };
-    
-    if (process.env.VERCEL) {
-      // على Vercel - إرجاع بيانات base64
-      data.imageData = fresh?.image?.buffer ? `data:${fresh.image.mimetype};base64,${fresh.image.buffer}` : null;
-    } else {
-      // محلياً - إرجاع رابط الصورة
-      const base = `${req.protocol}://${req.get("host")}`;
-      data.imageUrl = fresh?.image ? `${base}/uploads/${fresh.image}` : null;
-    }
+    const data = { ...fresh, imageUrl: fresh?.image ? `${base}/uploads/${fresh.image}` : null };
     if (data.sparePartModel && !data.spareBrand) data.spareBrand = data.sparePartModel;
     if (!data.deviceType && data.deviceTypeName) data.deviceType = data.deviceTypeName;
     if (!data.brand && data.brandName) data.brand = data.brandName;
