@@ -6,8 +6,8 @@ const Report = require("../models/Report");
 const SparePart = require("../models/SparePart");
 
 
-const SparePartModel = require("../models/SparePartModel");
 
+const SparePartModel = require("../models/SparePartModel");
 // exports.createReport = async (req, res) => {
 //   try {
 
