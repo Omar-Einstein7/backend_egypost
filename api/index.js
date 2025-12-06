@@ -5,8 +5,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 
-const reportRoutes = require("../src/routes/report.routes");
-const spareRoutes = require("../src/routes/spare.routes");
+const reportRoutes = require("./routes/report.routes");
+const spareRoutes = require("./routes/spare.routes");
 
 const app = express();
 
