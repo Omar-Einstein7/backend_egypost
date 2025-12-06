@@ -35,20 +35,50 @@ const applyMiddleware = (req, res, next) => {
   }
 };
 
-// Connect DB with better timeout settings
+// Connect DB with optimized timeout settings for serverless
 const connectDB = async () => {
   try {
+    // Check if already connected
+    if (mongoose.connection.readyState === 1) {
+      console.log("MongoDB already connected");
+      return;
+    }
+    
+    console.log("Connecting to MongoDB...");
+    
+    // Close any existing connection first (important for serverless)
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+    
     await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 30000, // 30 seconds
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
-      maxPoolSize: 10,
-      minPoolSize: 5,
+      maxPoolSize: 3, // Smaller pool for serverless
+      minPoolSize: 1,
+      bufferMaxEntries: 0, // Critical for serverless - no buffering
+      bufferCommands: false, // Critical for serverless - no buffering
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      family: 4, // Force IPv4
     });
-    console.log("MongoDB Connected!");
+    
+    console.log("MongoDB Connected successfully!");
+    
+    // Handle connection events for better error handling
+    mongoose.connection.on('error', (err) => {
+      console.error('MongoDB connection error:', err);
+    });
+    
+    mongoose.connection.on('disconnected', () => {
+      console.log('MongoDB disconnected');
+    });
+    
   } catch (err) {
-    console.error("MongoDB connection error:", err.message);
-    process.exit(1);
+    console.error("MongoDB connection failed:", err.message);
+    console.error("Error stack:", err.stack);
+    throw err;
   }
 };
 
@@ -60,9 +90,18 @@ module.exports = async (req, res) => {
   });
 
   // Connect to DB on first request if not connected
-  if (mongoose.connection.readyState === 0) {
-    await connectDB();
-  }
+   if (mongoose.connection.readyState === 0) {
+     try {
+       await connectDB();
+     } catch (err) {
+       res.writeHead(500, { "Content-Type": "application/json" });
+       res.end(JSON.stringify({ 
+         error: "Database connection failed", 
+         message: err.message 
+       }));
+       return;
+     }
+   }
 
   // Handle routes directly without app.use
   const { method, url } = req;
