@@ -1,7 +1,7 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const SparePart = require("../models/SpareParts");
-const SparePartModel = require("../models/SparePartsModel");
+const SparePart = require("../models/SparePart");
+const SparePartModel = require("../models/SparePartModel");
 
 async function upsertSparePart(name) {
   const doc = await SparePart.findOne({ name: new RegExp(`^${name}$`, "i") });

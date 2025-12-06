@@ -1,5 +1,5 @@
-const SparePart = require("../models/SpareParts");
-const SparePartModel = require("../models/SparePartsModel");
+const SparePart = require("../models/SparePart");
+const SparePartModel = require("../models/SparePartModel");
 
 exports.createSparePart = async (req, res) => {
   try {

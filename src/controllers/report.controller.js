@@ -3,10 +3,10 @@ const Brand = require("../models/Brand");
 const Model = require("../models/Model");
 
 const Report = require("../models/Report");
-const SparePart = require("../models/SpareParts");
+const SparePart = require("../models/SparePart");
 
 
-const SparePartModel = require("../models/SparePartsModel");
+const SparePartModel = require("../models/SparePartModel");
 
 // exports.createReport = async (req, res) => {
 //   try {
