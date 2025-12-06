@@ -1,6 +1,6 @@
 const DeviceType = require("../models/DeviceType");
 const Brand = require("../models/Brand");
-
+const Model = require("../models/Model");
 
 const Report = require("../models/Report");
 const SparePart = require("../models/SparePart");
@@ -21,7 +21,7 @@ exports.createReport = async (req, res) => {
       ? await SparePartModel.findOne({ name: new RegExp(`^${spareBrandName}$`, "i"), sparePart: sparePartDoc?._id })
       : null;
 
-  
+   
     // normalize incoming strings (avoid "null" string)
     const dtName = req.body.deviceType ? req.body.deviceType.toString().trim() : "";
     const brName = req.body.brand ? req.body.brand.toString().trim() : "";
