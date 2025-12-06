@@ -109,22 +109,23 @@ module.exports = async (req, res) => {
   }
 
   if (url.startsWith("/reports")) {
-    if (method === "GET" && url === "/reports") {
-      await reportController.getReports(req, res);
-      return;
-    }
-    if (method === "POST" && url === "/reports") {
-      await upload.single("image")(req, res, async (err) => {
-        if (err) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: err.message }));
-          return;
-        }
-        await reportController.createReport(req, res);
-      });
-      return;
-    }
-  }
+     // Handle both /reports and /reports/
+     if (method === "GET" && (url === "/reports" || url === "/reports/")) {
+       await reportController.getReports(req, res);
+       return;
+     }
+     if (method === "POST" && (url === "/reports" || url === "/reports/")) {
+       await upload.single("image")(req, res, async (err) => {
+         if (err) {
+           res.writeHead(400, { "Content-Type": "application/json" });
+           res.end(JSON.stringify({ error: err.message }));
+           return;
+         }
+         await reportController.createReport(req, res);
+       });
+       return;
+     }
+   }
 
   if (url.startsWith("/spares")) {
     if (method === "GET" && url === "/spares/parts") {
