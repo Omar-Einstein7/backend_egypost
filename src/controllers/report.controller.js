@@ -61,13 +61,22 @@ exports.createReport = async (req, res) => {
 
     
 
-    // على Vercel، لا يمكننا حفظ الملفات محلياً، لذلك نخزن البيانات كـ base64
-    const image = req.file ? {
-      filename: `image_${Date.now()}.${req.file.originalname.split('.').pop()}`,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      buffer: req.file.buffer.toString('base64')
-    } : null;
+    // التعامل مع الملفات بناءً على البيئة
+    let image = null;
+    if (req.file) {
+      if (process.env.VERCEL) {
+        // على Vercel - حفظ كـ base64
+        image = {
+          filename: `image_${Date.now()}.${req.file.originalname.split('.').pop()}`,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+          buffer: req.file.buffer.toString('base64')
+        };
+      } else {
+        // محلياً - حفظ اسم الملف فقط
+        image = req.file.filename;
+      }
+    }
 
     const payload = {
        sparePart: sparePartDoc?._id,
@@ -94,11 +103,17 @@ exports.createReport = async (req, res) => {
       .populate('sparePart')
       .populate('sparePartModel')
       .lean();
-    // على Vercel، لا يمكننا تقديم ملفات ثابتة، لذلك نعيد بيانات base64 مباشرة
-    const data = { 
-      ...fresh, 
-      imageData: fresh?.image?.buffer ? `data:${fresh.image.mimetype};base64,${fresh.image.buffer}` : null 
-    };
+    // التعامل مع الصور بناءً على البيئة
+    let data = { ...fresh };
+    
+    if (process.env.VERCEL) {
+      // على Vercel - إرجاع بيانات base64
+      data.imageData = fresh?.image?.buffer ? `data:${fresh.image.mimetype};base64,${fresh.image.buffer}` : null;
+    } else {
+      // محلياً - إرجاع رابط الصورة
+      const base = `${req.protocol}://${req.get("host")}`;
+      data.imageUrl = fresh?.image ? `${base}/uploads/${fresh.image}` : null;
+    }
     if (data.sparePartModel && !data.spareBrand) data.spareBrand = data.sparePartModel;
     if (!data.deviceType && data.deviceTypeName) data.deviceType = data.deviceTypeName;
     if (!data.brand && data.brandName) data.brand = data.brandName;
