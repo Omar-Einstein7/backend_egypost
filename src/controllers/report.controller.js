@@ -11,7 +11,7 @@ const SparePartModel = require("../models/SparePartModel");
 
 exports.createReport = async (req, res) => {
   try {
-    console.log("REQ BODY:", req.body);
+    
 
    const sparePartDoc = req.body.sparePart
       ? await SparePart.findOne({ name: new RegExp(`^${req.body.sparePart}$`, "i") })
@@ -61,7 +61,19 @@ exports.createReport = async (req, res) => {
 
     
 
-    const image = req.file ? req.file.filename : null;
+    // Handle both disk storage (local) and memory storage (Vercel)
+    let image = null;
+    if (req.file) {
+      if (req.file.filename) {
+        // Disk storage - use filename
+        image = req.file.filename;
+      } else if (req.file.buffer) {
+        // Memory storage - we need to handle this differently
+        // For now, we'll just store a reference or handle upload to cloud storage
+        image = `memory-upload-${Date.now()}`;
+        console.warn("Memory storage detected - consider implementing cloud storage for production");
+      }
+    }
 
     const payload = {
        sparePart: sparePartDoc?._id,
@@ -78,6 +90,7 @@ exports.createReport = async (req, res) => {
       modelName,
       image,
     };
+       
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
 
     const report = await Report.create(payload);
