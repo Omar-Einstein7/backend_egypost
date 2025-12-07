@@ -181,7 +181,20 @@ exports.getReports = async (req, res) => {
     const normalized = data.map((d) => {
       const obj = d.toObject();
       if (obj.sparePartModel && !obj.spareBrand) obj.spareBrand = obj.sparePartModel;
-      obj.imageUrl = obj.image ? `${base}/uploads/${obj.image}` : '';
+      
+      // Handle image URLs for both local and database storage
+      if (obj.image) {
+        if (obj.image.startsWith('db-upload-')) {
+          // Image stored in database - create URL to image endpoint
+          obj.imageUrl = `${base}/reports/${obj._id}/image`;
+        } else {
+          // Local file storage
+          obj.imageUrl = `${base}/uploads/${obj.image}`;
+        }
+      } else {
+        obj.imageUrl = '';
+      }
+      
       if (!obj.deviceType && obj.deviceTypeName) obj.deviceType = obj.deviceTypeName;
       if (!obj.brand && obj.brandName) obj.brand = obj.brandName;
       if (!obj.model && obj.modelName) obj.model = obj.modelName;
