@@ -58,6 +58,7 @@ connectDB();
 app.use("/reports", reportRoutes);
 app.use("/spares", spareRoutes);
 
+<<<<<<< HEAD
 // Static folder - only for local development (must be after API routes but before catch-all)
 if (!isVercel) {
   const path = require('path');
@@ -65,9 +66,17 @@ if (!isVercel) {
   app.use("/uploads", express.static(uploadStaticDir));
 }
 
+=======
+// Simple endpoint to check if server is working
+>>>>>>> 12ff7b5973ab0896a021b0ae5f129bac961be4f5
 app.use("/", (req, res) => {
-  res.send("Hello World!");
+  res.json({ 
+    message: "Server is running!",
+    environment: process.env.VERCEL ? "Vercel" : "Local",
+    mongoConnected: !!mongoose.connection.readyState
+  });
 });
+
 // Start server
  // http://omar-dev.local
 const PORT = process.env.PORT || 5000;
