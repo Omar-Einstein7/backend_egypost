@@ -63,17 +63,21 @@ exports.createReport = async (req, res) => {
 
     // Handle both disk storage (local) and memory storage (Vercel)
     let image = null;
-    let imageBase64 = null; // For memory storage on Vercel
+    let imageData = null; // Store image binary data for database
+    let imageContentType = null; // Store image MIME type
+    let imageBase64 = null; // For immediate display
     
     if (req.file) {
       if (req.file.filename) {
         // Disk storage - use filename
         image = req.file.filename;
       } else if (req.file.buffer) {
-        // Memory storage - convert to base64 for immediate display
-        image = `memory-upload-${Date.now()}`;
-        imageBase64 = req.file.buffer.toString('base64');
-        console.log("Image uploaded to memory, converted to base64");
+        // Memory storage - store in database for permanent storage
+        image = `db-upload-${Date.now()}-${req.file.originalname}`;
+        imageData = req.file.buffer; // Store binary data
+        imageContentType = req.file.mimetype; // Store MIME type
+        imageBase64 = req.file.buffer.toString('base64'); // For immediate display
+        console.log("Image uploaded to memory, storing in database");
       }
     }
 
@@ -91,6 +95,8 @@ exports.createReport = async (req, res) => {
       brandName,
       modelName,
       image,
+      imageData, // Store image binary data in database
+      imageContentType, // Store image MIME type in database
     };
        
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
@@ -117,6 +123,27 @@ exports.createReport = async (req, res) => {
     res.status(201).json({ data });
   } catch (e) {
     console.error("createReport error", e);
+    res.status(500).json({ error: e.message });
+  }
+};
+
+// New function to get image by report ID
+exports.getReportImage = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    
+    if (!report || !report.imageData) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+    
+    // Set appropriate content type
+    res.set('Content-Type', report.imageContentType || 'image/jpeg');
+    
+    // Send the image data
+    res.send(report.imageData);
+    
+  } catch (e) {
+    console.error("getReportImage error", e);
     res.status(500).json({ error: e.message });
   }
 };
