@@ -63,7 +63,6 @@ exports.createReport = async (req, res) => {
 
     // Handle both disk storage (local) and memory storage (Vercel)
     let image = null;
-    let imageBase64 = null; // For Vercel/serverless environments
     
     if (req.file) {
       if (req.file.filename) {
@@ -71,10 +70,10 @@ exports.createReport = async (req, res) => {
         image = req.file.filename;
       } else if (req.file.buffer) {
         // Memory storage - Vercel/serverless environment
-        // For Vercel, we'll use base64 encoding since we can't save files to disk
+        // For Vercel, we'll store a reference but not the actual image data
         image = `upload-${Date.now()}-${req.file.originalname}`;
-        imageBase64 = req.file.buffer.toString('base64');
         console.log("Image uploaded in memory (Vercel environment). Size:", req.file.buffer.length, "bytes");
+        console.warn("Vercel environment detected - images cannot be served statically. Consider using cloud storage.");
       }
     }
 
@@ -92,7 +91,6 @@ exports.createReport = async (req, res) => {
       brandName,
       modelName,
       image,
-      imageBase64,
     };
        
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
@@ -109,18 +107,22 @@ exports.createReport = async (req, res) => {
     
     // Handle image URL based on environment
     let imageUrl = null;
-    if (fresh?.imageBase64) {
-      // Vercel environment - use base64 data URL
-      imageUrl = `data:image/jpeg;base64,${fresh.imageBase64}`;
-    } else if (fresh?.image) {
-      // Local development - construct file URL
-      imageUrl = `${base}/uploads/${fresh.image}`;
+    if (fresh?.image) {
+      // Check if we're in Vercel environment
+      const isVercel = process.env.VERCEL || process.env.NOW_REGION;
+      if (isVercel) {
+        // Vercel environment - images cannot be served statically
+        imageUrl = null;
+        console.warn("Vercel environment: Images cannot be served statically. Consider using cloud storage.");
+      } else {
+        // Local development - construct file URL
+        imageUrl = `${base}/uploads/${fresh.image}`;
+      }
     }
     
     const data = { 
       ...fresh, 
-      imageUrl,
-      imageBase64: imageBase64 || null
+      imageUrl
     };
     if (data.sparePartModel && !data.spareBrand) data.spareBrand = data.sparePartModel;
     if (!data.deviceType && data.deviceTypeName) data.deviceType = data.deviceTypeName;
@@ -205,12 +207,16 @@ exports.getReports = async (req, res) => {
       if (obj.sparePartModel && !obj.spareBrand) obj.spareBrand = obj.sparePartModel;
       
       // Handle image URL based on environment
-      if (obj.imageBase64) {
-        // Vercel environment - use base64 data URL
-        obj.imageUrl = `data:image/jpeg;base64,${obj.imageBase64}`;
-      } else if (obj.image) {
-        // Local development - construct file URL
-        obj.imageUrl = `${base}/uploads/${obj.image}`;
+      if (obj.image) {
+        // Check if we're in Vercel environment
+        const isVercel = process.env.VERCEL || process.env.NOW_REGION;
+        if (isVercel) {
+          // Vercel environment - images cannot be served statically
+          obj.imageUrl = null;
+        } else {
+          // Local development - construct file URL
+          obj.imageUrl = `${base}/uploads/${obj.image}`;
+        }
       } else {
         obj.imageUrl = '';
       }
