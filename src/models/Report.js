@@ -20,8 +20,7 @@ const ReportSchema = new mongoose.Schema({
   serialNumber: String,
   date: Date,
   image: String,
-  imageData: Buffer, // Store image binary data
-  imageContentType: String, // Store image MIME type
+  imageBase64: String, // Store base64 encoded image for Vercel
 });
 
 module.exports = mongoose.model("Report", ReportSchema);

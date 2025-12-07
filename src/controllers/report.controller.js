@@ -63,21 +63,18 @@ exports.createReport = async (req, res) => {
 
     // Handle both disk storage (local) and memory storage (Vercel)
     let image = null;
-    let imageData = null; // Store image binary data for database
-    let imageContentType = null; // Store image MIME type
-    let imageBase64 = null; // For immediate display
+    let imageBase64 = null; // For Vercel/serverless environments
     
     if (req.file) {
       if (req.file.filename) {
-        // Disk storage - use filename
+        // Disk storage - use filename (local development)
         image = req.file.filename;
       } else if (req.file.buffer) {
-        // Memory storage - store in database for permanent storage
-        image = `db-upload-${Date.now()}-${req.file.originalname}`;
-        imageData = req.file.buffer; // Store binary data
-        imageContentType = req.file.mimetype; // Store MIME type
-        imageBase64 = req.file.buffer.toString('base64'); // For immediate display
-        console.log("Image uploaded to memory, storing in database. Size:", req.file.buffer.length, "bytes, Type:", req.file.mimetype);
+        // Memory storage - Vercel/serverless environment
+        // For Vercel, we'll use base64 encoding since we can't save files to disk
+        image = `upload-${Date.now()}-${req.file.originalname}`;
+        imageBase64 = req.file.buffer.toString('base64');
+        console.log("Image uploaded in memory (Vercel environment). Size:", req.file.buffer.length, "bytes");
       }
     }
 
@@ -95,8 +92,7 @@ exports.createReport = async (req, res) => {
       brandName,
       modelName,
       image,
-      imageData, // Store image binary data in database
-      imageContentType, // Store image MIME type in database
+      imageBase64,
     };
        
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
@@ -110,10 +106,20 @@ exports.createReport = async (req, res) => {
       .populate('sparePart')
       .populate('sparePartModel')
       .lean();
-    // Prepare response data with image URL or base64
+    
+    // Handle image URL based on environment
+    let imageUrl = null;
+    if (fresh?.imageBase64) {
+      // Vercel environment - use base64 data URL
+      imageUrl = `data:image/jpeg;base64,${fresh.imageBase64}`;
+    } else if (fresh?.image) {
+      // Local development - construct file URL
+      imageUrl = `${base}/uploads/${fresh.image}`;
+    }
+    
     const data = { 
       ...fresh, 
-      imageUrl: fresh?.image ? `${base}/uploads/${fresh.image}` : null,
+      imageUrl,
       imageBase64: imageBase64 || null
     };
     if (data.sparePartModel && !data.spareBrand) data.spareBrand = data.sparePartModel;
@@ -198,15 +204,13 @@ exports.getReports = async (req, res) => {
       const obj = d.toObject();
       if (obj.sparePartModel && !obj.spareBrand) obj.spareBrand = obj.sparePartModel;
       
-      // Handle image URLs for both local and database storage
-      if (obj.image) {
-        if (obj.image.startsWith('db-upload-')) {
-          // Image stored in database - create URL to image endpoint
-          obj.imageUrl = `${base}/reports/${obj._id}/image`;
-        } else {
-          // Local file storage
-          obj.imageUrl = `${base}/uploads/${obj.image}`;
-        }
+      // Handle image URL based on environment
+      if (obj.imageBase64) {
+        // Vercel environment - use base64 data URL
+        obj.imageUrl = `data:image/jpeg;base64,${obj.imageBase64}`;
+      } else if (obj.image) {
+        // Local development - construct file URL
+        obj.imageUrl = `${base}/uploads/${obj.image}`;
       } else {
         obj.imageUrl = '';
       }
