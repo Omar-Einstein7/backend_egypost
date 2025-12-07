@@ -141,7 +141,7 @@ exports.getReports = async (req, res) => {
       return obj;
     });
 
-    res.send({
+    res.json({
       total: count,
       page: Number(page),
       limit: Number(limit),
