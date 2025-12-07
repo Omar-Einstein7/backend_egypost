@@ -20,13 +20,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static folder - only for local development
-if (!isVercel) {
-  const path = require('path');
-  const uploadStaticDir = path.resolve(process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads'));
-  app.use("/uploads", express.static(uploadStaticDir));
-}
-
 // Connect DB with better error handling and Vercel compatibility
 console.log("Environment:", isVercel ? "Vercel" : "Local");
 console.log("MONGO_URI available:", !!process.env.MONGO_URI);
@@ -64,6 +57,14 @@ connectDB();
 // Routes
 app.use("/reports", reportRoutes);
 app.use("/spares", spareRoutes);
+
+// Static folder - only for local development (must be after API routes but before catch-all)
+if (!isVercel) {
+  const path = require('path');
+  const uploadStaticDir = path.resolve(process.env.UPLOAD_PATH || path.join(__dirname, '..', 'uploads'));
+  app.use("/uploads", express.static(uploadStaticDir));
+}
+
 app.use("/", (req, res) => {
   res.send("Hello World!");
 });

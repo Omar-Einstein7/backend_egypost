@@ -11,7 +11,7 @@ const SparePartModel = require("../models/SparePartModel");
 
 exports.createReport = async (req, res) => {
   try {
-    
+     console.log(req.body)
 
    const sparePartDoc = req.body.sparePart
       ? await SparePart.findOne({ name: new RegExp(`^${req.body.sparePart}$`, "i") })
@@ -108,6 +108,7 @@ exports.createReport = async (req, res) => {
     if (!data.brand && data.brandName) data.brand = data.brandName;
     if (!data.model && data.modelName) data.model = data.modelName;
     res.status(201).json({ data });
+   
   } catch (e) {
     console.error("createReport error", e);
     res.status(500).json({ error: e.message });
