@@ -63,17 +63,18 @@ exports.createReport = async (req, res) => {
 
     // Handle both disk storage (local) and memory storage (Vercel)
     let image = null;
+    let imageUrl = null;
     
     if (req.file) {
       if (req.file.filename) {
         // Disk storage - use filename (local development)
         image = req.file.filename;
       } else if (req.file.buffer) {
-        // Memory storage - Vercel/serverless environment
-        // For Vercel, we'll store a reference but not the actual image data
+        // Vercel environment - use blob URL
         image = `upload-${Date.now()}-${req.file.originalname}`;
+        // Use the blob URL from the middleware if available
+        imageUrl = req.blobUrl || null;
         console.log("Image uploaded in memory (Vercel environment). Size:", req.file.buffer.length, "bytes");
-        console.warn("Vercel environment detected - images cannot be served statically. Consider using cloud storage.");
       }
     }
 
@@ -91,6 +92,7 @@ exports.createReport = async (req, res) => {
       brandName,
       modelName,
       image,
+      imageUrl,
     };
        
     Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
@@ -105,24 +107,9 @@ exports.createReport = async (req, res) => {
       .populate('sparePartModel')
       .lean();
     
-    // Handle image URL based on environment
-    let imageUrl = null;
-    if (fresh?.image) {
-      // Check if we're in Vercel environment
-      const isVercel = process.env.VERCEL || process.env.NOW_REGION;
-      if (isVercel) {
-        // Vercel environment - images cannot be served statically
-        imageUrl = null;
-        console.warn("Vercel environment: Images cannot be served statically. Consider using cloud storage.");
-      } else {
-        // Local development - construct file URL
-        imageUrl = `${base}/uploads/${fresh.image}`;
-      }
-    }
-    
+    // Use the imageUrl from the database (already set during upload)
     const data = { 
-      ...fresh, 
-      imageUrl
+      ...fresh
     };
     if (data.sparePartModel && !data.spareBrand) data.spareBrand = data.sparePartModel;
     if (!data.deviceType && data.deviceTypeName) data.deviceType = data.deviceTypeName;
