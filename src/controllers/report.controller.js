@@ -77,7 +77,7 @@ exports.createReport = async (req, res) => {
         imageData = req.file.buffer; // Store binary data
         imageContentType = req.file.mimetype; // Store MIME type
         imageBase64 = req.file.buffer.toString('base64'); // For immediate display
-        console.log("Image uploaded to memory, storing in database");
+        console.log("Image uploaded to memory, storing in database. Size:", req.file.buffer.length, "bytes, Type:", req.file.mimetype);
       }
     }
 
@@ -130,21 +130,36 @@ exports.createReport = async (req, res) => {
 // New function to get image by report ID
 exports.getReportImage = async (req, res) => {
   try {
+    console.log("Getting image for report:", req.params.id);
     const report = await Report.findById(req.params.id);
     
-    if (!report || !report.imageData) {
+    if (!report) {
+      console.log("Report not found:", req.params.id);
+      return res.status(404).json({ error: "Report not found" });
+    }
+    
+    if (!report.imageData) {
+      console.log("Image data not found for report:", req.params.id, "Image field:", report.image);
       return res.status(404).json({ error: "Image not found" });
     }
     
-    // Set appropriate content type
+    console.log("Sending image data. Size:", report.imageData.length, "bytes, Type:", report.imageContentType);
+    
+    // Set appropriate content type and headers for web browsers
     res.set('Content-Type', report.imageContentType || 'image/jpeg');
+    res.set('Content-Length', report.imageData.length);
+    res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
     
     // Send the image data
     res.send(report.imageData);
     
   } catch (e) {
     console.error("getReportImage error", e);
-    res.status(500).json({ error: e.message });
+    
+    // Return proper error response instead of crashing
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to load image" });
+    }
   }
 };
 
