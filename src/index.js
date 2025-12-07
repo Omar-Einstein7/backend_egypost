@@ -64,9 +64,16 @@ connectDB();
 // Routes
 app.use("/reports", reportRoutes);
 app.use("/spares", spareRoutes);
+
+// Simple endpoint to check if server is working
 app.use("/", (req, res) => {
-  res.send("Hello World!");
+  res.json({ 
+    message: "Server is running!",
+    environment: process.env.VERCEL ? "Vercel" : "Local",
+    mongoConnected: !!mongoose.connection.readyState
+  });
 });
+
 // Start server
  // http://omar-dev.local
 const PORT = process.env.PORT || 5000;

@@ -63,15 +63,17 @@ exports.createReport = async (req, res) => {
 
     // Handle both disk storage (local) and memory storage (Vercel)
     let image = null;
+    let imageBase64 = null; // For memory storage on Vercel
+    
     if (req.file) {
       if (req.file.filename) {
         // Disk storage - use filename
         image = req.file.filename;
       } else if (req.file.buffer) {
-        // Memory storage - we need to handle this differently
-        // For now, we'll just store a reference or handle upload to cloud storage
+        // Memory storage - convert to base64 for immediate display
         image = `memory-upload-${Date.now()}`;
-        console.warn("Memory storage detected - consider implementing cloud storage for production");
+        imageBase64 = req.file.buffer.toString('base64');
+        console.log("Image uploaded to memory, converted to base64");
       }
     }
 
@@ -102,7 +104,12 @@ exports.createReport = async (req, res) => {
       .populate('sparePart')
       .populate('sparePartModel')
       .lean();
-    const data = { ...fresh, imageUrl: fresh?.image ? `${base}/uploads/${fresh.image}` : null };
+    // Prepare response data with image URL or base64
+    const data = { 
+      ...fresh, 
+      imageUrl: fresh?.image ? `${base}/uploads/${fresh.image}` : null,
+      imageBase64: imageBase64 || null
+    };
     if (data.sparePartModel && !data.spareBrand) data.spareBrand = data.sparePartModel;
     if (!data.deviceType && data.deviceTypeName) data.deviceType = data.deviceTypeName;
     if (!data.brand && data.brandName) data.brand = data.brandName;
