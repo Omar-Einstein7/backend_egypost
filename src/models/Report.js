@@ -20,6 +20,7 @@ const ReportSchema = new mongoose.Schema({
   serialNumber: String,
   date: Date,
   image: String,
+  imageUrl: String, // Store the actual image URL for Vercel Blob
 });
 
 module.exports = mongoose.model("Report", ReportSchema);
