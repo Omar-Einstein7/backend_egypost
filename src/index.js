@@ -22,15 +22,15 @@ const uploadStaticDir = path.resolve(process.env.UPLOAD_PATH || path.join(__dirn
 app.use("/uploads", express.static(uploadStaticDir));
 
 // Connect DB
-console.log("MONGO_URI:", process.env.MONGO_URI);
-if (!process.env.MONGO_URI) {
+console.log("MONGODB_URI:", process.env.MONGODB_URI);
+if (!process.env.MONGODB_URI) {
   console.error("ERROR: MONGO_URI environment variable is not set!");
   console.error("Please check your .env file and ensure MONGO_URI is defined");
   process.exit(1);
 }
 
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB Connected!"))
   .catch((err) => console.log(err.message));
 
